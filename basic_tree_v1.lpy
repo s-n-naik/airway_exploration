@@ -1,0 +1,54 @@
+# Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
+
+maxorder = 4 # maximum number of branching order
+radinc = 0.01 # incrememnt radius throuhg time (check this)
+maxduration = lambda order : int(5./(order+1))+5  # life time of an apex
+branch_angle = lambda order : 45 #lambda order : 8 # branching angle
+nb_axes = 2 # number of axes at branch point
+up_angle = lambda t,order : -5        # up angle for lateral branches
+
+
+# number total of iterations of the system
+nbiter = sum([maxduration(o) for o in range(maxorder+1)])
+
+module A # represent trunk apical meristem
+module B # represent apical meristem of lateral branches
+module I # Internode
+
+Axiom: _(0.05)@GcI(0.5,0.05)A(0,0) 
+derivation length: nbiter
+production:
+A(t,o) :
+  if t < maxduration(o):
+     # simply produces a metamer and ages the apex
+     produce I(1,0.1)A(t+1,o) 
+  else:
+      # produce a whorl of sympodial branches
+      nbaxe = nb_axes
+      for i in range(nbaxe):
+        nproduce [/(360*i/nbaxe)&(branch_angle(o))B(0,o+1)]
+        
+        
+B(t,o) :
+  if t < maxduration(o):
+     # simply produces a metamer and ages the apex
+     # reorient smoothly the branch toward the up
+     produce ^(up_angle(t,o))I(1,0.1)B(t+1,o)
+  else:
+      # produce a whorl of sympodial branches
+      nbaxe = nb_axes
+      for i in range(nbaxe):
+        nproduce [/(360*i/nbaxe)&(branch_angle(o))B(0,o+1)]
+
+# Increment radius of internodes
+I(s,r) --> I(s,r+radinc)
+_(r) --> _(r+radinc)
+
+
+
+interpretation:
+
+homomorphism:
+I(a,r) --> F(a,r)
+
+endlsystem
