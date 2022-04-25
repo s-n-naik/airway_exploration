@@ -1,16 +1,32 @@
 # Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
 
-maxorder = 4 # maximum number of branching order
-radinc = 0.01 # incrememnt radius throuhg time (check this)
-maxduration = lambda order : int(5./(order+1))+5  # life time of an apex
-branch_angle = lambda order : 45 #lambda order : 8 # branching angle
-nb_axes = 2 # number of axes at branch point
-up_angle = lambda t,order : -5        # up angle for lateral branches
+
+  
+switch_order = 4 # triggers switch from planar bifurcation to orthogonal bifurcation
+domain_to_bi = 3
+maxorder = 4# maximum number of branching order
+radinc = 0.01 # incrememnt radius throuhg time - all branches are 'born at same width and then grow over time of simulation rather than being initated at diff radii)
+maxduration = lambda order : int(5./(order+1))+5 # life time of an apex (before branch occurs - branch life decreases over time)
+branch_angle = lambda order : 40 #lambda order : 8 # branching angle
+#roll_angle = lambda order: return_roll_angle(order)
+nb_axes = 2 # number of axes at branch point (bifurcation)
+up_angle = lambda t,order : 0       # up angle for lateral branches modifies curvature
+
 
 
 # number total of iterations of the system
 nbiter = sum([maxduration(o) for o in range(maxorder+1)])
 
+def roll_angle(order):
+  if order < switch_order:
+    if order % 2 ==0:
+      return 90
+    else:
+      return 270
+  else:
+    return 0
+  
+  
 module A # represent trunk apical meristem
 module B # represent apical meristem of lateral branches
 module I # Internode
@@ -18,15 +34,17 @@ module I # Internode
 Axiom: _(0.05)@GcI(0.5,0.05)A(0,0) 
 derivation length: nbiter
 production:
+
 A(t,o) :
   if t < maxduration(o):
      # simply produces a metamer and ages the apex
      produce I(1,0.1)A(t+1,o) 
   else:
-      # produce a whorl of sympodial branches
-      nbaxe = nb_axes
-      for i in range(nbaxe):
-        nproduce [/(360*i/nbaxe)&(branch_angle(o))B(0,o+1)]
+    nbaxe = nb_axes
+    for i in range(nbaxe):
+       nproduce [/(roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1)]
+       
+      
         
         
 B(t,o) :
@@ -38,7 +56,7 @@ B(t,o) :
       # produce a whorl of sympodial branches
       nbaxe = nb_axes
       for i in range(nbaxe):
-        nproduce [/(360*i/nbaxe)&(branch_angle(o))B(0,o+1)]
+        nproduce [/(roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1)]
 
 # Increment radius of internodes
 I(s,r) --> I(s,r+radinc)
