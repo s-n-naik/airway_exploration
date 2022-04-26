@@ -1,0 +1,99 @@
+# Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
+import random
+# switch_order: order at which switch from orthog bifurcation to planar bifurcation
+# domain_to_bi: order at which switch from domain branching to orthog bifurcation
+# max_order: maximum number of branching order before you stop growing the tree
+# radinc: incrememnt radius throuhg time - all branches are 'born at same width and then grow over time of simulation rather than being initated at diff radii)
+# max_duration: life time of an apex (before branch occurs - branch life decreases over time)
+# branch_angle: branching angle
+#nb_axes: number of axes at branch point (bifurcation)
+# up_angle: up angle for lateral branches modifies curvature
+# phi: for domain branching, angle of roll between sucessive branches
+# curr_roll_angle: for domain branching, increments with each successive branch by phi
+# nbiter: number total of iterations of the system
+
+# param set
+switch_order = 10
+domain_to_bi = 2
+maxorder = 7
+radinc = 0.01 
+maxduration = lambda order : int(5./(order+1))+5
+branch_angle = lambda order : 40
+nb_axes = 2 
+up_angle = lambda t,order : -5
+phi = 90
+curr_roll_angle = lambda t: phi*t
+nbiter = sum([maxduration(o) for o in range(maxorder+1)]) # some iterations just lengthen the apex so you need to run num orders * length of each order to get num iterations of PM that you would need to execute maxorder branching events
+
+# function definitions
+
+def EndEach(lstring):
+  # prints out the lstring to the terminal at each derivation step + the length of the lstring
+  print(random.randint(0,255))
+  print(len(lstring), lstring, "\n")
+
+def bi_roll_angle(order):
+  # if the order of the branching is less than the trigger we rotate 90 degrees from current direction before bifurcation (orthogonal bifurcation)
+  if order < switch_order:
+      return 90
+  else:
+    # planar branching mode (edges of lungs) no roll of axis before successive branching
+    return 0
+    
+def domain_roll_angle(order, curr_roll_angle):
+  # for domain bifurcation
+  if (curr_roll_angle + phi) < 360:
+    curr_roll_angle += phi
+    return curr_roll_angle
+  else: 
+    curr_roll_angle = (curr_roll_angle + phi)-360
+    return curr_roll_angle
+
+ 
+module A # represent trunk apical meristem
+module B # represent apical meristem of lateral branches
+module I # Internode
+
+Axiom: _(0.05)@GcI(0.5,0.05)A(0,0) # GcI = generalised cyllinders (smoothed connections)
+derivation length: nbiter
+production:
+
+A(t,o) :
+  if t < maxduration(o):
+     # simply produces a metamer and ages the apex
+     produce SetColor(random.randint(0,255),random.randint(0,255),random.randint(0,255))I(1,0.1) SetColor(random.randint(0,255),random.randint(0,255),random.randint(0,255))A(t+1,o) 
+  else:
+    nbaxe = nb_axes
+    for i in range(nbaxe):
+       nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))SetColor(random.randint(0,5))B(0,o+1)]
+       
+            
+        
+B(t,o) :
+  if t < maxduration(o):
+     # simply produces a metamer and ages the apex
+     # reorient smoothly the branch toward the up
+     produce ^(up_angle(t,o))SetColor(random.randint(0,5))I(1,0.1)SetColor(random.randint(0,5))B(t+1,o)
+  else:
+      if o < domain_to_bi:
+        # domain branching
+        #curr_roll_angle = domain_roll_angle(o, curr_roll_angle)
+        produce [/(curr_roll_angle(t)) &(branch_angle(o))SetColor(random.randint(0,5))B(0,o+1)]SetColor(random.randint(0,5))I(1,0.1)SetColor(random.randint(0,5))B(t+1,o)
+      else:
+        # produce an orthog or planar bifurcation
+        nbaxe = nb_axes
+        for i in range(nbaxe):
+          nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))SetColor(random.randint(0,5))B(0,o+1)]
+
+# Increment radius of internodes
+I(s,r) --> I(s,r+radinc)
+_(r) --> _(r+radinc)
+
+
+
+interpretation:
+
+homomorphism:
+I(a,r) --> F(a,r)
+
+endlsystem
