@@ -45,9 +45,9 @@ def domain_roll_angle(order, curr_roll_angle):
     return curr_roll_angle
 
  
-module A # represent trunk apical meristem
-module B # represent apical meristem of lateral branches
-module I # Internode
+module A # represent trunk apical meristem (tip)
+module B # represent apical meristem of lateral branches (tip)
+module I # Internode (trunk section)
 
 Axiom: _(0.05)@GcI(0.5,0.05)A(0,0) # GcI = generalised cyllinders (smoothed connections)
 derivation length: nbiter

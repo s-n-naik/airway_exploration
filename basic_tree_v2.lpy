@@ -16,11 +16,11 @@ import random
 switch_order = 10
 domain_to_bi = 2
 maxorder = 7
-radinc = 0.01 
-maxduration = lambda order : int(5./(order+1))+5
+radinc = 0.01
+maxduration = lambda order : 1 #int(5./(order+1))+5
 branch_angle = lambda order : 40
 nb_axes = 2 
-up_angle = lambda t,order : -5
+up_angle = lambda t,order : -10
 phi = 90
 curr_roll_angle = lambda t: phi*t
 nbiter = sum([maxduration(o) for o in range(maxorder+1)]) # some iterations just lengthen the apex so you need to run num orders * length of each order to get num iterations of PM that you would need to execute maxorder branching events
