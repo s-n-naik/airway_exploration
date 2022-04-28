@@ -1,0 +1,96 @@
+import numpy as np
+import pandas as pd
+import random
+test_df = pd.read_csv('visualisation_test_3011950.csv')
+colour_scale_per_gen = int(255/(test_df.weibel_generation.max()-test_df.weibel_generation.min()))-1
+
+array1 = np.array([-0.01299,	0.19485,	0.980747])
+b1 = np.array([-0.498729,	-0.142494,	0.854965])
+b2 = np.array([0.78707,	0.0491919,	0.614899])
+
+maxstartid = 100
+init_start_id = -1
+init_end_id = 1
+nbiter = test_df.weibel_generation.nunique()
+
+def get_child_info(start_id):
+    try:
+        children = test_df[test_df.startbpid == start_id]
+        nb_axes = len(children)
+        child_vectors = []
+        child_lengths = []
+        child_radii = []
+        child_endids = []
+        child_names = []
+        generation  = []
+        for j in range(nb_axes):
+            child_end = children.iloc[j]["endbpid"]
+            child_gen = children.iloc[j]["weibel_generation"]
+            print("GEN", child_gen)
+            child_name = children.iloc[j]['anatomicalname']
+            if child_name == "-":
+              child_name = ""
+            child_vector = children.iloc[j][["dircosx", "dircosy", "dircosz"]].values
+            child_l = children.iloc[j]["centerlinelength"]/10
+            child_r = np.sqrt(children.iloc[j]["avginnerarea"]/np.pi)/100
+            child_vectors.append(child_vector)
+            child_lengths.append(child_l)
+            child_radii.append(child_r)
+            child_endids.append(child_end)
+            child_names.append(child_name)
+            generation.append(child_gen)
+        
+    except:
+        print(f"There is no start branch id {start_id}")
+        
+    print('start id', start_id, 'children:', nb_axes, child_vectors, child_lengths, child_radii, child_endids, child_names, generation)
+    return nb_axes, child_vectors, child_lengths, child_radii, child_endids, child_names, generation
+
+# for length get lambda function to query the dataframe for the segment
+def EndEach(lstring):
+  # prints out the lstring to the terminal at each derivation step + the length of the lstring
+  
+  print(len(lstring), lstring, "\n")
+
+module I
+module A
+
+
+Axiom: @Gc A(-1)
+
+#Axiom: @Gc@Gc  Pinpoint(array1)I(8.2, 0.086984788)@L("Trachea, 1")Frame[PinpointRel(b1) SetColor(4)I(2.3,0.066890856)@L("RMB, 6")Frame][PinpointRel(b2) SetColor(6)I(5.0,0.055768792)@L("LMB, 7")Frame]
+  
+#nproduce Frame @Gc
+#for i in range(n):
+#nproduce +(20)/(10)F(3)Frame[SetColor(4)F(5,0.1)Frame]&(20)Frame[SetColor(6)F(5,0.2)]
+# @GcF(2) /(10)^(45)+(70)F(2) #@GcF[;-(70)f(0.1)\(80)] #Cylinders generalized (Fig. B)
+
+derivation length:  nbiter
+production:
+
+A(p):
+  nb_axes, child_vectors, child_lengths, child_radii, child_endids, child_names , generation = get_child_info(p)
+  if p == -1:
+    produce Pinpoint(child_vectors[0])I(child_lengths[0],child_radii[0], p, child_endids[0], child_names[0], generation[0])Frame A(child_endids[0])
+  else:
+    for i in range(nb_axes):
+      nproduce PinpointRel(child_vectors[i])[I(child_lengths[i],child_radii[i], p, child_endids[i], child_names[i], generation[i]) A(child_endids[i])]
+    
+    
+    
+
+
+
+interpretation:
+
+I(l,r,p1,p2,name, gen) -->@SetColor(int(colour_scale_per_gen*gen), 0,0)F(l,r)@SetColor(0,255,0)@L(str(name)) # @SetColor(0,0,0)@L('('+str(p1)+','+str(p2)+')', 6)
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_8 = pgl.Material("Color_8" , ambient = (113,0,0) , diffuse = 1.41593 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
