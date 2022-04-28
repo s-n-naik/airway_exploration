@@ -13,15 +13,15 @@
 # nbiter: number total of iterations of the system
 
 # param set
-switch_order = 4
+switch_order = 6
 domain_to_bi = 2
-maxorder = 8
-radinc = 0.01 
+maxorder = 9
+radinc = 0.0
 maxduration = lambda order : int(3./(order+1))+3
-branch_angle = lambda order : 40
+branch_angle = lambda order : 30
 nb_axes = 2 
-up_angle = lambda t,order : -5
-phi = 90
+up_angle = lambda t,order : 0
+phi = 30
 curr_roll_angle = lambda t: phi*t
 nbiter = sum([maxduration(o) for o in range(maxorder+1)])
 

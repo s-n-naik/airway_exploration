@@ -15,7 +15,7 @@ import random
 # param set
 switch_order = 10
 domain_to_bi = 2
-maxorder = 7
+maxorder = 8
 radinc = 0.01
 maxduration = lambda order : 1 #int(5./(order+1))+5
 branch_angle = lambda order : 40
