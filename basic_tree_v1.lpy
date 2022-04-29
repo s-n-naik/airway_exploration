@@ -1,4 +1,7 @@
 # Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
+import random
+
+# THERE IS A PROBLEM WITH THIS SIMPLE MODEL -> Change triggers for switching branchign mode!
 
 # switch_order: order at which switch from orthog bifurcation to planar bifurcation
 # domain_to_bi: order at which switch from domain branching to orthog bifurcation
@@ -13,19 +16,27 @@
 # nbiter: number total of iterations of the system
 
 # param set
-switch_order = 6
-domain_to_bi = 2
+switch_order = 5
+domain_to_bi = 3
 maxorder = 9
-radinc = 0.0
+radinc = 0.01
 maxduration = lambda order : int(3./(order+1))+3
-branch_angle = lambda order : 30
+branch_angle = lambda order : 40
 nb_axes = 2 
-up_angle = lambda t,order : 0
-phi = 30
+up_angle = lambda t,order : -2
+phi = 90
 curr_roll_angle = lambda t: phi*t
-nbiter = sum([maxduration(o) for o in range(maxorder+1)])
-
+nbiter = sum([maxduration(o) for o in range(maxorder+1)]) # some iterations just lengthen the apex so you need to run num orders * length of each order to get num iterations of PM that you would need to execute maxorder branching events
+c = (197,126,20)
+c_domain = (100,120,186)
+c_planar = (148,206,135)
+c_orthog = (249,105,116)
 # function definitions
+
+def EndEach(lstring):
+  # prints out the lstring to the terminal at each derivation step + the length of the lstring
+  print(random.randint(0,255))
+  print(len(lstring), lstring, "\n")
 
 def bi_roll_angle(order):
   # if the order of the branching is less than the trigger we rotate 90 degrees from current direction before bifurcation (orthogonal bifurcation)
@@ -45,43 +56,49 @@ def domain_roll_angle(order, curr_roll_angle):
     return curr_roll_angle
 
  
-module A # represent trunk apical meristem (tip)
-module B # represent apical meristem of lateral branches (tip)
-module I # Internode (trunk section)
+module A # represent trunk apical meristem
+module B # represent apical meristem of lateral branches
+module I # Internode
 
-Axiom: _(0.05)@GcI(0.5,0.05)A(0,0) # GcI = generalised cyllinders (smoothed connections)
+Axiom: _(0.05)@GcI(0.5,0.05)A(0,0,c) # GcI = generalised cyllinders (smoothed connections)
 derivation length: nbiter
 production:
 
-A(t,o) :
+A(t,o, c) :
   if t < maxduration(o):
      # simply produces a metamer and ages the apex
-     produce I(1,0.1)A(t+1,o) 
+     produce I(1,0.1, c) A(t+1,o, c) 
   else:
     nbaxe = nb_axes
     for i in range(nbaxe):
-       nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1)]
+      # first tracheal split (planar bifurcation)
+       nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1,c)]
        
             
         
-B(t,o) :
+B(t,o, c) :
   if t < maxduration(o):
      # simply produces a metamer and ages the apex
      # reorient smoothly the branch toward the up
-     produce ^(up_angle(t,o))I(1,0.1)B(t+1,o)
+     produce ^(up_angle(t,o))I(1,0.1,c)B(t+1,o,c)
   else:
       if o < domain_to_bi:
         # domain branching
         #curr_roll_angle = domain_roll_angle(o, curr_roll_angle)
-        produce [/(curr_roll_angle(t)) &(branch_angle(o))B(0,o+1)]I(1,0.1)B(t+1,o)
+        c = c_domain
+        produce [/(curr_roll_angle(t)) &(branch_angle(o))B(0,o+1,c)]I(1,0.1,c)B(t+1,o,c) # these last two pieces keep the original branch growing --> put a stop / different matruty on this here
       else:
         # produce an orthog or planar bifurcation
         nbaxe = nb_axes
+        if bi_roll_angle(o) == 0:
+          c = c_planar
+        else:
+          c = c_orthog
         for i in range(nbaxe):
-          nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1)]
+          nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1,c)]
 
 # Increment radius of internodes
-I(s,r) --> I(s,r+radinc)
+I(s,r,c) --> I(s,r+radinc,c)
 _(r) --> _(r+radinc)
 
 
@@ -89,6 +106,6 @@ _(r) --> _(r+radinc)
 interpretation:
 
 homomorphism:
-I(a,r) --> F(a,r)
+I(a,r, c) --> @SetColor(c[0], c[1], c[2])F(a,r)
 
 endlsystem

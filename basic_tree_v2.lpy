@@ -1,5 +1,8 @@
 # Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
 import random
+
+# THERE IS A PROBLEM WITH THIS SIMPLE MODEL -> Change triggers for switching branchign mode!
+
 # switch_order: order at which switch from orthog bifurcation to planar bifurcation
 # domain_to_bi: order at which switch from domain branching to orthog bifurcation
 # max_order: maximum number of branching order before you stop growing the tree
@@ -13,14 +16,14 @@ import random
 # nbiter: number total of iterations of the system
 
 # param set
-switch_order = 10
+switch_order = 5
 domain_to_bi = 2
 maxorder = 8
 radinc = 0.01
-maxduration = lambda order : 1 #int(5./(order+1))+5
+maxduration = lambda order : int(3./(order+1))+3
 branch_angle = lambda order : 40
 nb_axes = 2 
-up_angle = lambda t,order : -10
+up_angle = lambda t,order : -2
 phi = 90
 curr_roll_angle = lambda t: phi*t
 nbiter = sum([maxduration(o) for o in range(maxorder+1)]) # some iterations just lengthen the apex so you need to run num orders * length of each order to get num iterations of PM that you would need to execute maxorder branching events
@@ -61,11 +64,11 @@ production:
 A(t,o) :
   if t < maxduration(o):
      # simply produces a metamer and ages the apex
-     produce SetColor(random.randint(0,255),random.randint(0,255),random.randint(0,255))I(1,0.1) SetColor(random.randint(0,255),random.randint(0,255),random.randint(0,255))A(t+1,o) 
+     produce I(1,0.1) A(t+1,o) 
   else:
     nbaxe = nb_axes
     for i in range(nbaxe):
-       nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))SetColor(random.randint(0,5))B(0,o+1)]
+       nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1)]
        
             
         
@@ -73,17 +76,17 @@ B(t,o) :
   if t < maxduration(o):
      # simply produces a metamer and ages the apex
      # reorient smoothly the branch toward the up
-     produce ^(up_angle(t,o))SetColor(random.randint(0,5))I(1,0.1)SetColor(random.randint(0,5))B(t+1,o)
+     produce ^(up_angle(t,o))I(1,0.1)B(t+1,o)
   else:
       if o < domain_to_bi:
         # domain branching
         #curr_roll_angle = domain_roll_angle(o, curr_roll_angle)
-        produce [/(curr_roll_angle(t)) &(branch_angle(o))SetColor(random.randint(0,5))B(0,o+1)]SetColor(random.randint(0,5))I(1,0.1)SetColor(random.randint(0,5))B(t+1,o)
+        produce [/(curr_roll_angle(t)) &(branch_angle(o))B(0,o+1)]I(1,0.1)B(t+1,o)
       else:
         # produce an orthog or planar bifurcation
         nbaxe = nb_axes
         for i in range(nbaxe):
-          nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))SetColor(random.randint(0,5))B(0,o+1)]
+          nproduce [/(bi_roll_angle(o)+360*i/nbaxe) &(branch_angle(o))B(0,o+1)]
 
 # Increment radius of internodes
 I(s,r) --> I(s,r+radinc)
