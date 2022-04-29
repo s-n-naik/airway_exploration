@@ -13,6 +13,18 @@ init_start_id = -1
 init_end_id = 1
 nbiter = test_df.weibel_generation.nunique()
 
+# weibel generation colour map
+cmap = {
+    0: (0,0,0),
+    1: (1, 37, 111),
+    2: (180, 60, 164),
+    3: (247, 156, 238),
+    4: (23, 149, 91),
+    5: (131, 224, 193),
+    100: (187, 188, 191)
+}
+
+
 def get_child_info(start_id):
     try:
         children = test_df[test_df.startbpid == start_id]
@@ -26,7 +38,9 @@ def get_child_info(start_id):
         for j in range(nb_axes):
             child_end = children.iloc[j]["endbpid"]
             child_gen = children.iloc[j]["weibel_generation"]
-            print("GEN", child_gen)
+            if child_gen > 5:
+              # set gen to 100 (for colour purposes only)
+              child_gen = 100
             child_name = children.iloc[j]['anatomicalname']
             if child_name == "-":
               child_name = ""
@@ -71,7 +85,7 @@ production:
 A(p):
   nb_axes, child_vectors, child_lengths, child_radii, child_endids, child_names , generation = get_child_info(p)
   if p == -1:
-    produce Pinpoint(child_vectors[0])I(child_lengths[0],child_radii[0], p, child_endids[0], child_names[0], generation[0])Frame A(child_endids[0])
+    produce Pinpoint(child_vectors[0])I(child_lengths[0],child_radii[0], p, child_endids[0], child_names[0], generation[0]) A(child_endids[0]) # removed Frame from before A(child_endids[0])
   else:
     for i in range(nb_axes):
       nproduce PinpointRel(child_vectors[i])[I(child_lengths[i],child_radii[i], p, child_endids[i], child_names[i], generation[i]) A(child_endids[i])]
@@ -83,7 +97,7 @@ A(p):
 
 interpretation:
 
-I(l,r,p1,p2,name, gen) -->@SetColor(int(colour_scale_per_gen*gen), 0,0)F(l,r)@SetColor(0,255,0)@L(str(name)) # @SetColor(0,0,0)@L('('+str(p1)+','+str(p2)+')', 6)
+I(l,r,p1,p2,name, gen) -->@SetColor(cmap[int(gen)][0], cmap[int(gen)][1],cmap[int(gen)][2] )F(l,r)@SetColor(68, 68, 60)@L(str(name))# @SetColor(0,0,0)@L('('+str(p1)+','+str(p2)+')', 6)
 endlsystem
 ###### INITIALISATION ######
 
