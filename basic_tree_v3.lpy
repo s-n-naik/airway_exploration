@@ -1,4 +1,4 @@
-# Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
+
 import random
 import numpy as np
 
@@ -17,23 +17,26 @@ import numpy as np
 # nbiter: number total of iterations of the system
 
 # param set
-switch_o = 3
-_group = lambda order: random.randint(0,2)
 
-phi = 90
-curr_roll_angle = lambda t: phi*t
-
+p='C'
 _growth_rate  = 1 # growth rate or branches per timestep, t
-r_0 = 1 # setting init radius
-beta = 3
-radius = lambda order: r_0 / np.power(2, order/beta) # weibel decay
-nbiter = 30 # one timestep = one iteration
 
+beta = 3/2
+radius = lambda order: r_0 * np.power(2, -order/beta) # weibel decay
+nbiter = 15 # one timestep = one iteration
+trachea_vector = np.array([-0.01299,	0.19485,	0.980747])
 # colours for diff modes
 c_orig = (197,126,20)
 c_domain = (100,120,186)
 c_planar = (148,206,135)
 c_orthog = (249,105,116)
+
+# scaffold params
+l_0 = 5
+r_0 = 1
+tilt_angle = 10
+branch_angle = 30
+omega = 5
 #alpha: branching angle rel to parent dirn (about U ^/&)
 #theta_1: domain initial angle (about H, /\)  
 #o: current generation (to increment on bifurcation)
@@ -50,70 +53,103 @@ def EndEach(lstring):
   pass
 
 def StartEach():
+  # try with csv
+  n = getIterationNb()
   prev = getGroup()
-  if getIterationNb() % 30 ==0:
-    if (getGroup() == 1):
-      useGroup(2)
-    else:
-        useGroup(1)
-  print('Group:',prev,'-->',getGroup(), 'Iteration', getIterationNb())
-  
-
+  if  n <= 5:
+    useGroup(0)
+  elif (n > 5) & (n <= 8):
+    useGroup(1)
+  else:
+    useGroup(3)
     
+    
+  print('Group:',prev,'-->',getGroup(), 'Iteration', getIterationNb())
+
+  
 def get_params_planar(t,o):
   alpha = 30
-  theta_1 = 10
+  theta_1 = 40
   omega = 3
-  switch= lambda o: True if o == switch_o else False
-  return alpha, theta_1, omega, switch(o)
+ 
+  return alpha, theta_1, omega
   
 
     
 def get_params_orthog(t,o):
   alpha = 30
-  theta_1 = 90
+  theta_1 = 20
   omega = 3
   return alpha, theta_1, omega
+  
+def get_params_domain(t,o):
+  alpha = 30
+  theta_1 = 20
+  omega = 1
+  delta_theta = 90
+  return alpha, theta_1, omega, delta_theta
 
 module I
 module A 
+module B
 
-
-Axiom: @GcI(0, r_0,c_orig,0)A(0,0, c_orig,0)
-
-#Axiom: _(0.05)@GcI(0.5,0.05)A(0,0,c) # GcI = generalised cyllinders (smoothed connections)
+Axiom: Pinpoint(trachea_vector)@Gc I(l_0, r_0,c_orig,0)[/(0) &(branch_angle) +(tilt_angle)A(0,1, c_orig,p)][/(180) &(branch_angle) +(tilt_angle)A(0,1, c_orig,p)]
 derivation length: nbiter
+
 production:
 
 group 1:
-
+# PLANAR BIFURCATION
 A(t,o, c,p) :
   
-  alpha, theta_1, omega, switch = get_params_planar(t,o) # nnote need to change this to lobe dependent params
+  alpha, theta_1, omega = get_params_planar(t,o) # nnote need to change this to lobe dependent params
   if t < omega:
      # simply produces a metamer and ages the apex
      
      produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
   
   else:
-    if o < switch_o:
+    if c != c_planar: # when switching domains start at theta_1 orientation
       produce [/(theta_1)&(alpha) A(0,o+1,c_planar,p)][/(theta_1+180) &(alpha) A(0,o+1,c_planar,p)]
     else:
-      produce [/(0)&(alpha) A(0,o+1,c_domain,p)][/(0+180) &(alpha) A(0,o+1,c_domain,p)]
+      produce [/(0)&(alpha) A(0,o+1,c_planar,p)][/(0+180) &(alpha) A(0,o+1,c_planar,p)]
 
 endgroup
-group 2:
 
+group 2:
+# ORTHOG BIFURCATION
 A(t,o, c,p) :
-  alpha, theta_1, omega = get_params_planar(t,o) # nnote need to change this to lobe dependent params
+  
+  alpha, theta_1, omega = get_params_orthog(t,o) # nnote need to change this to lobe dependent params
   if t < omega:
      # simply produces a metamer and ages the apex
      
-    produce I(_growth_rate, radius(o),c_domain,o) A(t+1,o, c_domain,p) 
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+  
   else:
-    produce [/(theta_1) &(alpha) A(0,o+1,c_domain,p)][/(theta_1 + 180) &(alpha) A(0,o+1,c_domain,p)]
+    if c != c_orthog:
+      produce [/(theta_1)&(alpha) A(0,o+1,c_orthog,p)][/(theta_1+180) &(alpha) A(0,o+1,c_orthog,p)]
+    else:
+      produce [/(90)&(alpha) A(0,o+1,c_orthog,p)][/(90+180) &(alpha) A(0,o+1,c_orthog,p)]
+endgroup 
 
-
+group 3:
+# DOMAIN BRANCHING
+A(t,o, c,p) :
+  
+  alpha, theta_1, omega, delta_theta = get_params_domain(t,o) # nnote need to change this to lobe dependent params
+  
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+  
+  else:
+    if c != c_domain:
+      produce [/(theta_1) &(alpha)A(0,o+1, c_domain,p)]/(delta_theta)A(0,o+1, c_domain,p)
+    else:
+      produce [ &(alpha)A(0,o+1, c_domain,p)]/(delta_theta)A(0,o+1, c_domain,p)
+      
 endgroup 
 
 
