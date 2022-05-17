@@ -1,0 +1,131 @@
+# Adapted from https://github.com/fredboudon/lpy/blob/master/share/tutorial/11%20-%20archimodels/schoute.lpy
+import random
+import numpy as np
+
+# THERE IS A PROBLEM WITH THIS SIMPLE MODEL -> Change triggers for switching branchign mode! REMEMBER TO INCERMENT GENERATION AFTER DOMAIN BRANCHING
+
+# switch_order: order at which switch from orthog bifurcation to planar bifurcation
+# domain_to_bi: order at which switch from domain branching to orthog bifurcation
+# max_order: maximum number of branching order before you stop growing the tree
+# radinc: incrememnt radius throuhg time - all branches are 'born at same width and then grow over time of simulation rather than being initated at diff radii)
+# max_duration: life time of an apex (before branch occurs - branch life decreases over time)
+# branch_angle: branching angle
+#nb_axes: number of axes at branch point (bifurcation)
+# up_angle: up angle for lateral branches modifies curvature
+# phi: for domain branching, angle of roll between sucessive branches
+# curr_roll_angle: for domain branching, increments with each successive branch by phi
+# nbiter: number total of iterations of the system
+
+# param set
+switch_o = 3
+_group = lambda order: random.randint(0,2)
+
+phi = 90
+curr_roll_angle = lambda t: phi*t
+
+_growth_rate  = 1 # growth rate or branches per timestep, t
+r_0 = 1 # setting init radius
+beta = 3
+radius = lambda order: r_0 / np.power(2, order/beta) # weibel decay
+nbiter = 30 # one timestep = one iteration
+
+# colours for diff modes
+c_orig = (197,126,20)
+c_domain = (100,120,186)
+c_planar = (148,206,135)
+c_orthog = (249,105,116)
+#alpha: branching angle rel to parent dirn (about U ^/&)
+#theta_1: domain initial angle (about H, /\)  
+#o: current generation (to increment on bifurcation)
+#c: colour of current system 
+#Produces a symmettric bifurcation starting at an angle theta_1 relative to parent heading direction
+
+# function definitions
+
+def EndEach(lstring):
+  # prints out the lstring to the terminal at each derivation step + the length of the lstring
+  #print('length lstring:',len(lstring))
+  #print('lstring', lstring)
+  #print(getIterationNb())
+  pass
+
+def StartEach():
+  prev = getGroup()
+  if getIterationNb() % 30 ==0:
+    if (getGroup() == 1):
+      useGroup(2)
+    else:
+        useGroup(1)
+  print('Group:',prev,'-->',getGroup(), 'Iteration', getIterationNb())
+  
+
+    
+def get_params_planar(t,o):
+  alpha = 30
+  theta_1 = 10
+  omega = 3
+  switch= lambda o: True if o == switch_o else False
+  return alpha, theta_1, omega, switch(o)
+  
+
+    
+def get_params_orthog(t,o):
+  alpha = 30
+  theta_1 = 90
+  omega = 3
+  return alpha, theta_1, omega
+
+module I
+module A 
+
+
+Axiom: @GcI(0, r_0,c_orig,0)A(0,0, c_orig,0)
+
+#Axiom: _(0.05)@GcI(0.5,0.05)A(0,0,c) # GcI = generalised cyllinders (smoothed connections)
+derivation length: nbiter
+production:
+
+group 1:
+
+A(t,o, c,p) :
+  
+  alpha, theta_1, omega, switch = get_params_planar(t,o) # nnote need to change this to lobe dependent params
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+  
+  else:
+    if o < switch_o:
+      produce [/(theta_1)&(alpha) A(0,o+1,c_planar,p)][/(theta_1+180) &(alpha) A(0,o+1,c_planar,p)]
+    else:
+      produce [/(0)&(alpha) A(0,o+1,c_domain,p)][/(0+180) &(alpha) A(0,o+1,c_domain,p)]
+
+endgroup
+group 2:
+
+A(t,o, c,p) :
+  alpha, theta_1, omega = get_params_planar(t,o) # nnote need to change this to lobe dependent params
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+    produce I(_growth_rate, radius(o),c_domain,o) A(t+1,o, c_domain,p) 
+  else:
+    produce [/(theta_1) &(alpha) A(0,o+1,c_domain,p)][/(theta_1 + 180) &(alpha) A(0,o+1,c_domain,p)]
+
+
+endgroup 
+
+
+
+#A(t,o, c) --> I(_growth_rate, radius(o),(0,0,0),o) A(t+1,o, (0,0,0)) 
+interpretation:
+I(l,r, c,o) --> @SetColor(c[0], c[1], c[2])F(l,r)@SetColor(0,0,0)@L(str(o))
+
+homomorphism:
+
+
+
+
+
+endlsystem

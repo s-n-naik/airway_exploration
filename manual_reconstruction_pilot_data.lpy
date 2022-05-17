@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
 import random
+#df = pd.read_csv('airway_tree_pilot_clean.csv')
+
 test_df = pd.read_csv('visualisation_test_3011950.csv')
+
+
 colour_scale_per_gen = int(255/(test_df.weibel_generation.max()-test_df.weibel_generation.min()))-1
 
 array1 = np.array([-0.01299,	0.19485,	0.980747])
@@ -22,6 +26,16 @@ cmap = {
     4: (23, 149, 91),
     5: (131, 224, 193),
     100: (187, 188, 191)
+}
+
+cmap_2 = {
+    0: (0,0,0),
+    1: (0,0,0),
+    2: (0,0,0),
+    3: (0,0,0),
+    4: (0,0,0),
+    5: (0,0,0),
+    100:(0,0,0)
 }
 
 
