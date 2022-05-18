@@ -1,0 +1,167 @@
+
+import random
+import numpy as np
+
+# THERE IS A PROBLEM WITH THIS SIMPLE MODEL -> Change triggers for switching branchign mode! REMEMBER TO INCERMENT GENERATION AFTER DOMAIN BRANCHING
+
+# switch_order: order at which switch from orthog bifurcation to planar bifurcation
+# domain_to_bi: order at which switch from domain branching to orthog bifurcation
+# max_order: maximum number of branching order before you stop growing the tree
+# radinc: incrememnt radius throuhg time - all branches are 'born at same width and then grow over time of simulation rather than being initated at diff radii)
+# max_duration: life time of an apex (before branch occurs - branch life decreases over time)
+# branch_angle: branching angle
+#nb_axes: number of axes at branch point (bifurcation)
+# up_angle: up angle for lateral branches modifies curvature
+# phi: for domain branching, angle of roll between sucessive branches
+# curr_roll_angle: for domain branching, increments with each successive branch by phi
+# nbiter: number total of iterations of the system
+
+# param set
+
+p='C'
+_growth_rate  = 1 # growth rate or branches per timestep, t
+
+beta = 3/2
+radius = lambda order: r_0 * np.power(2, -order/beta) # weibel decay
+nbiter = 15 # one timestep = one iteration
+trachea_vector = np.array([-0.01299,	0.19485,	0.980747])
+# colours for diff modes
+c_orig = (197,126,20)
+c_domain = (100,120,186)
+c_planar = (148,206,135)
+c_orthog = (249,105,116)
+
+# scaffold params
+l_0 = 5
+r_0 = 1
+tilt_angle = 10
+branch_angle = 30
+omega = 5
+#alpha: branching angle rel to parent dirn (about U ^/&)
+#theta_1: domain initial angle (about H, /\)  
+#o: current generation (to increment on bifurcation)
+#c: colour of current system 
+#Produces a symmettric bifurcation starting at an angle theta_1 relative to parent heading direction
+
+# function definitions
+
+def EndEach(lstring):
+  # prints out the lstring to the terminal at each derivation step + the length of the lstring
+  #print('length lstring:',len(lstring))
+  #print('lstring', lstring)
+  #print(getIterationNb())
+  pass
+
+def StartEach():
+  # try with csv
+  n = getIterationNb()
+  prev = getGroup()
+  if  n <= 5:
+    useGroup(0)
+  elif (n > 5) & (n <= 8):
+    useGroup(1)
+  else:
+    useGroup(3)
+    
+    
+  print('Group:',prev,'-->',getGroup(), 'Iteration', getIterationNb())
+
+  
+def get_params_planar(t,o):
+  alpha = 30
+  theta_1 = 40
+  omega = 3
+ 
+  return alpha, theta_1, omega
+  
+
+    
+def get_params_orthog(t,o):
+  alpha = 30
+  theta_1 = 20
+  omega = 3
+  return alpha, theta_1, omega
+  
+def get_params_domain(t,o):
+  alpha = 30
+  theta_1 = 20
+  omega = 1
+  delta_theta = 90
+  return alpha, theta_1, omega, delta_theta
+
+module I
+module A 
+module B
+
+Axiom: Pinpoint(trachea_vector)@Gc I(l_0, r_0,c_orig,0)[/(0) &(branch_angle) +(tilt_angle)A(0,1, c_orig,p)][/(180) &(branch_angle) +(tilt_angle)A(0,1, c_orig,p)]
+derivation length: nbiter
+
+production:
+
+group 1:
+# PLANAR BIFURCATION
+A(t,o, c,p) :
+  
+  alpha, theta_1, omega = get_params_planar(t,o) # nnote need to change this to lobe dependent params
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+  
+  else:
+    if c != c_planar: # when switching domains start at theta_1 orientation
+      produce [/(theta_1)&(alpha) A(0,o+1,c_planar,p)][/(theta_1+180) &(alpha) A(0,o+1,c_planar,p)]
+    else:
+      produce [/(0)&(alpha) A(0,o+1,c_planar,p)][/(0+180) &(alpha) A(0,o+1,c_planar,p)]
+
+endgroup
+
+group 2:
+# ORTHOG BIFURCATION
+A(t,o, c,p) :
+  
+  alpha, theta_1, omega = get_params_orthog(t,o) # nnote need to change this to lobe dependent params
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+  
+  else:
+    if c != c_orthog:
+      produce [/(theta_1)&(alpha) A(0,o+1,c_orthog,p)][/(theta_1+180) &(alpha) A(0,o+1,c_orthog,p)]
+    else:
+      produce [/(90)&(alpha) A(0,o+1,c_orthog,p)][/(90+180) &(alpha) A(0,o+1,c_orthog,p)]
+endgroup 
+
+group 3:
+# DOMAIN BRANCHING
+A(t,o, c,p) :
+  
+  alpha, theta_1, omega, delta_theta = get_params_domain(t,o) # nnote need to change this to lobe dependent params
+  
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+  
+  else:
+    if c != c_domain:
+      produce [/(theta_1) &(alpha)A(0,o+1, c_domain,p)]/(delta_theta)A(0,o+1, c_domain,p)
+    else:
+      produce [ &(alpha)A(0,o+1, c_domain,p)]/(delta_theta)A(0,o+1, c_domain,p)
+      
+endgroup 
+
+
+
+#A(t,o, c) --> I(_growth_rate, radius(o),(0,0,0),o) A(t+1,o, (0,0,0)) 
+interpretation:
+I(l,r, c,o) --> @SetColor(c[0], c[1], c[2])F(l,r)@SetColor(0,0,0)@L(str(o))
+
+homomorphism:
+
+
+
+
+
+endlsystem
