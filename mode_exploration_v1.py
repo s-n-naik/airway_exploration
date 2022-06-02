@@ -5,8 +5,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import torch
-from tqdm.notebook import tqdm
-
+from tqdm import tqdm
+import time
 
 # ### Data Loading
 
@@ -110,16 +110,22 @@ def _classify_mode(per_bp):
 
 def _iterate_participants(df_clean):
     # add angles
+    starttime = time.time()
+    print("Adding Angles")
     df_clean["thetax_"] = np.arccos(df_clean.dircosx.values)*180/np.pi
     df_clean["thetaz_"]  = np.arccos(df_clean.dircosz.values)*180/np.pi
     df_clean["thetay_"] = np.arccos(df_clean.dircosy.values)*180/np.pi
     df_clean['v_'] = df_clean.apply(lambda x:x[['dircosx', 'dircosy', 'dircosz']].to_list(),axis=1)
+    print(f"Finished Angles: {time.time()-starttime:.2f}s")
+    # iterating through participants
     groups = df_clean.groupby('idno')
     results_list = []
+    print(f"Iterating through participants: {time.time()-starttime:.2f}s")
     for name, group in tqdm(groups, desc='Iterating', display=True):
         per_bp_per_group = _process_participant_tree(group)
         per_bp = _classify_mode(per_bp_per_group)
         results_list.append(per_bp)
+    print(f"Finished, doing df operations: {time.time()-starttime:.2f}s")
     total_df = pd.concat(results_list,axis=0)   
     total_df['gen'] = (total_df['weibel_generation'].apply(lambda x: np.nan if min(x) != max(x) else min(x)))
     print("Fixing generation", len(total_df))
@@ -350,7 +356,7 @@ def _iterate_participants(df_clean):
 
 if __name__ == "__main__":
     
-    df_orig = pd.read_csv(os.path.abspath("/home/sneha/airway_exploration/e5_cleaned_v1.csv"))
+    df = pd.read_csv(os.path.abspath("/home/sneha/airway_exploration/e5_cleaned_v1.csv"))
     # few cleaning checks --> dropnas, fill remaining with 0s
     df = df.loc[~((df.dircosx.isnull()) & (df.startbpid != -1))]
     df.dropna(subset = ['idno', 'centerlinelength', 'startbpid', 'endbpid', 'weibel_generation'], inplace=True)
