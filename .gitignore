@@ -130,6 +130,7 @@ dmypy.json
 
 
 # excel
-.xlsx
-.csv
-.xls
+*.xlsx
+*.csv
+*.xls
+*.jpg
