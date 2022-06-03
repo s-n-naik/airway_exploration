@@ -28,14 +28,11 @@ import time
 def _process_participant_tree(group):
     # take the group (per participant) and groupby startbpid
     # group must already have v_, theta_x,y,z in cols
-    
+    # assume trifurcations + above already removed!(FLAG: potentially need to remove this its an assumption!!!!)
     # get per branch point + delete trifurcations
     per_bp = group.groupby([pd.Grouper('idno'), pd.Grouper('startbpid')]).agg({
-    lambda x:x.to_list() if len(x.to_list()) <=2 else np.nan}).reset_index()
+    lambda x:x.to_list()}).reset_index() # if len(x.to_list()) <=2 else np.nan (removed this as assumed non bifurcations are removed)
     per_bp.columns = [a for a,b in per_bp.columns]
-
-    # drop any rows with > 3 / flag (potentially need to remove this its an assumption!!!!)
-    display(per_bp.loc[per_bp.endbpid.isnull()])
     per_bp.dropna(subset='endbpid', inplace=True)
     
     # now we have the tree grouped by branch point and need to get angles etc
@@ -44,7 +41,7 @@ def _process_participant_tree(group):
         if len(x) == 2:
             return np.cross(x[0], x[1])
         else:
-#             print(len(x), x)
+            print(len(x), x)
             return np.nan
 
     per_bp['plane_v'] = per_bp['v_'].apply(lambda x: get_plane(x))
@@ -115,13 +112,14 @@ def _iterate_participants(df_clean):
     df_clean["thetax_"] = np.arccos(df_clean.dircosx.values)*180/np.pi
     df_clean["thetaz_"]  = np.arccos(df_clean.dircosz.values)*180/np.pi
     df_clean["thetay_"] = np.arccos(df_clean.dircosy.values)*180/np.pi
-    df_clean['v_'] = df_clean.apply(lambda x:x[['dircosx', 'dircosy', 'dircosz']].to_list(),axis=1)
+    df_clean['v_'] = df_clean[['dircosx', 'dircosy', 'dircosz']].values.tolist()
+#     df_clean['v_'] = df_clean.apply(lambda x:x[['dircosx', 'dircosy', 'dircosz']].to_list(),axis=1)
     print(f"Finished Angles: {time.time()-starttime:.2f}s")
     # iterating through participants
     groups = df_clean.groupby('idno')
     results_list = []
     print(f"Iterating through participants: {time.time()-starttime:.2f}s")
-    for name, group in tqdm(groups, desc='Iterating', display=True):
+    for name, group in tqdm(groups):
         per_bp_per_group = _process_participant_tree(group)
         per_bp = _classify_mode(per_bp_per_group)
         results_list.append(per_bp)
@@ -358,6 +356,9 @@ if __name__ == "__main__":
     
     df = pd.read_csv(os.path.abspath("/home/sneha/airway_exploration/e5_cleaned_v1.csv"))
     # few cleaning checks --> dropnas, fill remaining with 0s
+    
+#     df = df.loc[df.idno.isin([8024995, 3010007 ])] # comment out to run full df
+#     print("TESTING MODE", len(df))
     df = df.loc[~((df.dircosx.isnull()) & (df.startbpid != -1))]
     df.dropna(subset = ['idno', 'centerlinelength', 'startbpid', 'endbpid', 'weibel_generation'], inplace=True)
     df.fillna(0, inplace=True)
