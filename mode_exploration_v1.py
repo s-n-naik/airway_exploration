@@ -79,7 +79,10 @@ def _process_participant_tree(group):
 
 
 # classify the bifurcations using branch angles, and rotations between successive branches
-def _classify_mode(per_bp):
+def _classify_mode(per_bp, modes_dict = {
+        'planar_bi': 30,
+        'orthog_bi': 60
+    }):
     '''
     Input: df grouped per branch point
     INITIAL MODES
@@ -89,12 +92,16 @@ def _classify_mode(per_bp):
     # mode other: not any of the above
     Returns: df grouped per branch point with classification of each branch point as [domain?, bifurcatinon?, other_mode?] and if bifurcation as [planar_bi, orthog_bi, other_bi]
     '''
+#     modes_dict = {
+#         'planar_bi': 30,
+#         'orthog_bi': 60
+#     }
     # classify based on pairs of angles
     per_bp['domain?'] = per_bp['angle'].apply(lambda x: True if ((np.max(x) > 160) & (np.min(x)/np.max(x)  <= 0.8)) else False) # one large angle
     per_bp['bifurcation?']= per_bp['angle'].apply(lambda x: True if np.min(x)/np.max(x) > 0.8 else False) # similar angles for children = bifurcation
     per_bp['other_mode?'] = ~(per_bp['domain?']|per_bp['bifurcation?'])
-    per_bp['planar_bi'] = per_bp['bifurcation?'] & (per_bp['plane_rotation'] <= 20)
-    per_bp['orthog_bi'] = per_bp['bifurcation?'] & (per_bp['plane_rotation'] >= 70)
+    per_bp['planar_bi'] = per_bp['bifurcation?'] & (per_bp['plane_rotation'] <= modes_dict['planar_bi'])
+    per_bp['orthog_bi'] = per_bp['bifurcation?'] & (per_bp['plane_rotation'] >= modes_dict['orthog_bi'])
     per_bp['other_bi'] = ~(per_bp['planar_bi']| per_bp['orthog_bi']) & (per_bp['bifurcation?'])
     
     return per_bp
@@ -105,7 +112,7 @@ def _classify_mode(per_bp):
 
 
 
-def _iterate_participants(df_clean):
+def _iterate_participants(df_clean, modes_dict):
     # add angles
     starttime = time.time()
     print("Adding Angles")
@@ -121,7 +128,7 @@ def _iterate_participants(df_clean):
     print(f"Iterating through participants: {time.time()-starttime:.2f}s")
     for name, group in tqdm(groups):
         per_bp_per_group = _process_participant_tree(group)
-        per_bp = _classify_mode(per_bp_per_group)
+        per_bp = _classify_mode(per_bp_per_group, modes_dict)
         results_list.append(per_bp)
     print(f"Finished, doing df operations: {time.time()-starttime:.2f}s")
     total_df = pd.concat(results_list,axis=0)   
@@ -363,8 +370,12 @@ if __name__ == "__main__":
     df.dropna(subset = ['idno', 'centerlinelength', 'startbpid', 'endbpid', 'weibel_generation'], inplace=True)
     df.fillna(0, inplace=True)
     print(f"Final clean df has {df.idno.nunique()} participants and a total length of {len(df)}")
-    total_df = _iterate_participants(df)
-    total_df.to_csv("per_branch_pt_mode_classification.csv", index=False)
+    modes_dict = {
+        'planar_bi': 30,
+        'orthog_bi': 60
+    }
+    total_df = _iterate_participants(df,modes_dict)
+    total_df.to_csv("per_branch_pt_mode_classification_3_modes.csv", index=False)
     # In[ ]:
 
 
