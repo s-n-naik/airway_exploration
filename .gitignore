@@ -134,3 +134,9 @@ dmypy.json
 *.csv
 *.xls
 *.jpg
+*.png
+*.ply
+*.nii.gz
+*.nii
+*.npy
+*.json
