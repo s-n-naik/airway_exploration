@@ -38,6 +38,21 @@ from collections import Counter
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
+# Get train test split masks
+def train_test_split(binary_label_df,n_splits_test, seed=0):
+    labels_list = binary_label_df["binaryLL_1"].tolist()
+    print("Overall Label frequency distribution", [(x, labels_list.count(x)) for x in set(labels_list)])
+
+    # stratified kfold
+    print(f"Getting train test split stratified on the {len(labels_list)} labels")
+    splitter_test = StratifiedKFold(n_splits=n_splits_test, shuffle=True, random_state=seed)
+    test_folds = list(splitter_test.split(np.array(labels_list), np.array(labels_list)))
+    train_idx, test_idx = test_folds[0]
+
+    train_ids = binary_label_df.iloc[train_idx]['idno'].unique()
+    test_ids = binary_label_df.iloc[test_idx]['idno'].unique()
+    
+    return train_ids, test_ids
 
 
 # make training function

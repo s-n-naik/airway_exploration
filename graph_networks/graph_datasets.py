@@ -1,12 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
 
-# In[1]:
-
-
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
-# !apt-get install -y xvfb
 import time
 import torch
 import scipy
@@ -193,7 +185,7 @@ class CustomDataset(torch_geometric.data.Dataset):
         # adding trachea info to top of list
         trachea_dict = dict.fromkeys(node_features, 0)
         for i in ['x_norm', 'y_norm', 'z_norm']:
-            trachea_dict[i] = tree_w_coords.loc[tree_w_coords.startbpid==-1][str('parent_loc_'+i)].item()
+            trachea_dict[i] = df.loc[df.startbpid==-1][str('parent_loc_'+i)].item()
         
         # currently usnig as features 
         list_of_nodes = df[node_features].to_dict(orient='records')

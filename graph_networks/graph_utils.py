@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
 
 import time
 import torch
@@ -99,83 +94,111 @@ def _count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad == True)
 
 
-def _vis_graph_example(dataloader,model, index, pilot_df_w_labels, visualise_g = False, save_path = None):
-    data = dataloader.dataset[index]
-    print(data)
-    label = data.y
-    g = to_networkx(data)
-    # get relabelmap
-    idno, relabel = dataloader.dataset.node_map[index]
-    # map to original df
-    vis_graph  =pilot_df_w_labels.loc[pilot_df_w_labels.idno==idno]
-    print(f"This graph is for id: {idno}")
-    display(vis_graph.head())
-    # get the relabelling to match the pytorch graph 
-    vis_graph['start_node'] = vis_graph.startbpid.apply(lambda x:relabel[x])
-    vis_graph['end_node'] = vis_graph.endbpid.apply(lambda x:relabel[x])
-#     display(vis_graph[['startbpid', 'endbpid']+node_features + ['parent_loc_x_norm','parent_loc_y_norm']])
-#     print(data.x)
-    print("Getting model preds per node (node model needs to be a per node one)")
-    model.eval()
-    x, weight = model(data.to(device))
-    x = x.cpu().detach().numpy() # take off cuda
-    weight = weight.cpu().detach().numpy() # take off cuda
-    
-#     print("x", x.shape[0], 'weight', weight.shape[0], 'label', label.shape[0])
-    
-    if model.agg == 'none':
-#         print('useing node preds')
-        # per node rather than per graph
-        preds = x.copy().squeeze()
-    else:
-        # per graph output - use per node (weights )for color
-#         print("using weights")
-        preds = weight.copy().squeeze()
-#     print("preds shape", preds.shape)
-    
-    
-    # drawing graph in networkx & matplotlib
+
+def visualise_airway_tree_matplotlib(pilot_df, idno_test):
+
+    tree_w_coords = pilot_df[(pilot_df.idno ==idno_test)] # anomaly label 1 (missing lobe 2)
+    val_min = tree_w_coords.weibel_generation.min()
+    val_max=tree_w_coords.weibel_generation.max()
+    # cmap = mpl.cm.RdYlGn#.reversed()
     cmap = mpl.colormaps['spring'].reversed()
-    vmin, vmax = 0,1
-    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
-    sm.set_array([])
-    cmap_nodes = [cmap(norm(preds[node])) for node in g.nodes()]
-    edge_labels = {edge:vis_graph.loc[vis_graph.end_node == edge[1]]['anatomicalname'].item() for edge in g.edges()}
-    pos = nx.planar_layout(g, scale=1, center=(0,0), dim=2)
-    
-    
-    if visualise_g:
-        f, ax = plt.subplots(figsize=(10,10))
-        nx.draw(g,pos=pos, with_labels=False,node_color=cmap_nodes, ax=ax)
-        nx.draw_networkx_edge_labels(g, pos,
-                                  edge_labels,
-                                     font_color='k',
-                                     font_size='10',
-                                  label_pos=0.5,
+    norm = mpl.colors.Normalize(vmin=val_min, vmax=val_max)
 
-                                    )
-        
-        cbar = plt.colorbar(sm)
+    # simpliofy names
+    tree_w_coords['anatomicalname'] = tree_w_coords['anatomicalname'].apply(lambda x:"" if ('unnamed' in x) or (x == '-') else x)
 
-        plt.title(f'TRAINING GRAPH: {idno}, ANOMALY LABEL: {label.item()}')
-        plt.show()
+    row = tree_w_coords.iloc[0]
+    # quick visualisation of tree
 
-
-    
     fig=plt.figure(figsize=(10,10))
     ax = fig.add_subplot(projection='3d')
-    for i in range(len(vis_graph)):
-        row = vis_graph.iloc[i]
-        ax.plot([row.parent_loc_x,row.x], [row.parent_loc_y,row.y], [row.parent_loc_z, row.z], linestyle='-',linewidth=1, color= cmap(norm(preds[row.end_node])), label=row.end_node)
-        ax.scatter(row.x, row.y, row.z, marker='o',color= cmap(norm(preds[row.end_node])))
+
+    for i in range(len(tree_w_coords)):
+        row = tree_w_coords.iloc[i]
+        ax.plot([row.parent_loc_x,row.x], [row.parent_loc_y,row.y], [row.parent_loc_z, row.z], linestyle='-',linewidth=3, color= cmap(norm(row.weibel_generation)), label=row.anatomicalname)
     ax.grid(False)
     ax.set_facecolor(color=(1,1,1))
-    cbar = plt.colorbar(sm)
-    plt.title(f'TRAINING GRAPH: {idno}, ANOMALY LABEL: {label.item()}')
-    if save_path is not None:
-        plt.savefig(save_path)
     plt.show()
+    
+    
+
+# def _vis_graph_example(dataloader,model, index, pilot_df_w_labels, visualise_g = False, save_path = None):
+#     data = dataloader.dataset[index]
+#     print(data)
+#     label = data.y
+#     g = to_networkx(data)
+#     # get relabelmap
+#     idno, relabel = dataloader.dataset.node_map[index]
+#     # map to original df
+#     vis_graph  =pilot_df_w_labels.loc[pilot_df_w_labels.idno==idno]
+#     print(f"This graph is for id: {idno}")
+#     display(vis_graph.head())
+#     # get the relabelling to match the pytorch graph 
+#     vis_graph['start_node'] = vis_graph.startbpid.apply(lambda x:relabel[x])
+#     vis_graph['end_node'] = vis_graph.endbpid.apply(lambda x:relabel[x])
+# #     display(vis_graph[['startbpid', 'endbpid']+node_features + ['parent_loc_x_norm','parent_loc_y_norm']])
+# #     print(data.x)
+#     print("Getting model preds per node (node model needs to be a per node one)")
+#     model.eval()
+#     x, weight = model(data.to(device))
+#     x = x.cpu().detach().numpy() # take off cuda
+#     weight = weight.cpu().detach().numpy() # take off cuda
+    
+# #     print("x", x.shape[0], 'weight', weight.shape[0], 'label', label.shape[0])
+    
+#     if model.agg == 'none':
+# #         print('useing node preds')
+#         # per node rather than per graph
+#         preds = x.copy().squeeze()
+#     else:
+#         # per graph output - use per node (weights )for color
+# #         print("using weights")
+#         preds = weight.copy().squeeze()
+# #     print("preds shape", preds.shape)
+    
+    
+#     # drawing graph in networkx & matplotlib
+#     cmap = mpl.colormaps['spring'].reversed()
+#     vmin, vmax = 0,1
+#     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+#     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
+#     sm.set_array([])
+#     cmap_nodes = [cmap(norm(preds[node])) for node in g.nodes()]
+#     edge_labels = {edge:vis_graph.loc[vis_graph.end_node == edge[1]]['anatomicalname'].item() for edge in g.edges()}
+#     pos = nx.planar_layout(g, scale=1, center=(0,0), dim=2)
+    
+    
+#     if visualise_g:
+#         f, ax = plt.subplots(figsize=(10,10))
+#         nx.draw(g,pos=pos, with_labels=False,node_color=cmap_nodes, ax=ax)
+#         nx.draw_networkx_edge_labels(g, pos,
+#                                   edge_labels,
+#                                      font_color='k',
+#                                      font_size='10',
+#                                   label_pos=0.5,
+
+#                                     )
+        
+#         cbar = plt.colorbar(sm)
+
+#         plt.title(f'TRAINING GRAPH: {idno}, ANOMALY LABEL: {label.item()}')
+#         plt.show()
+
+
+    
+#     fig=plt.figure(figsize=(10,10))
+#     ax = fig.add_subplot(projection='3d')
+#     for i in range(len(vis_graph)):
+#         row = vis_graph.iloc[i]
+#         ax.plot([row.parent_loc_x,row.x], [row.parent_loc_y,row.y], [row.parent_loc_z, row.z], linestyle='-',linewidth=1, color= cmap(norm(preds[row.end_node])), label=row.end_node)
+#         ax.scatter(row.x, row.y, row.z, marker='o',color= cmap(norm(preds[row.end_node])))
+#     ax.grid(False)
+#     ax.set_facecolor(color=(1,1,1))
+#     cbar = plt.colorbar(sm)
+#     plt.title(f'TRAINING GRAPH: {idno}, ANOMALY LABEL: {label.item()}')
+#     if save_path is not None:
+#         plt.savefig(save_path)
+#     plt.show()
 
 
 
