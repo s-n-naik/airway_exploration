@@ -50,6 +50,7 @@ class CustomDataset(torch_geometric.data.Dataset):
                  test=False,
                  transform=None,
                  pre_transform=None,
+                 label_col_name = 'binaryLL_1',
                 args = {'node_feature_names': [], 'edge_feature_names': []}):
         '''
         root = where dataset should be stored, folder is split into raw_dir and processed_dir
@@ -59,7 +60,14 @@ class CustomDataset(torch_geometric.data.Dataset):
         IGNORE OTHERR INPUTS __> NOTE TEST IS FIXED AS FASLE NOT SURE WHAT IT DOES MAYBE FOR INDUCTIVE LEARNING
         
         '''
-        # super(CustomDataset, self).__init__(root, transform, pre_transform)
+
+            
+            
+        self.test = False
+        self.filename_data = os.path.abspath(filename_data)
+        self.filename_labels = os.path.abspath(filename_labels)
+        self.node_map = {}
+        #         super(CustomDataset, self).__init__(root, transform, pre_transform)
         if len(args['node_feature_names']) > 0:
             self.node_feature_names = args['node_feature_names']
         else:
@@ -69,13 +77,9 @@ class CustomDataset(torch_geometric.data.Dataset):
             self.edge_feature_names = args['edge_feature_names']
         else:
             self.edge_feature_names = None
-        
-            
-            
-        self.test = False
-        self.filename_data = os.path.abspath(filename_data)
-        self.filename_labels = os.path.abspath(filename_labels)
-        self.node_map = {}
+        print(f"Using Node features: {self.node_feature_names}, Edge features: {self.edge_feature_names}")
+        self.label_col = label_col_name
+        print(f"Getting labels from: {self.label_col}")
         super(CustomDataset, self).__init__(root, transform, pre_transform)
         
     @property
@@ -125,7 +129,7 @@ class CustomDataset(torch_geometric.data.Dataset):
     
     def _process_labels(self):
         '''
-        Reads label df - checks its binary 0,1 labels (REQUIRES COLUMN binaryLL_1) if not returns an error 
+        Reads label df - checks its binary 0,1 labels (REQUIRES COLUMN self.label_col) if not returns an error 
         Keeps only rows that match idnos in self.data_df which is processed first
         measures class proportions and saves to self.class_proportions
         returns a df which has a label per idno with label in col called 'y'
@@ -133,15 +137,15 @@ class CustomDataset(torch_geometric.data.Dataset):
         #(NOTE THIS IS WRONG YOU NEED TO DROP UNALBELLED)
         label_df = pd.read_csv(os.path.abspath(self.filename_labels))
         # binarise 
-        assert 'binaryLL_1' in label_df.columns, "The column binaryLL_1 cannot be found"
+        assert self.label_col in label_df.columns, f"The column {self.label_col} cannot be found"
         # drop unnecessary cols
         
         # drop rows not matching to data ids
         data_df =  pd.read_csv(os.path.abspath(self.filename_data))
         label_df_small = label_df.loc[label_df.idno.isin(data_df.idno.unique())]
         
-        print("# Graphs", len(label_df_small), "Label Frequency", Counter(label_df_small['binaryLL_1'].to_list()))
-        self.class_proportions = {k:v/len(label_df_small) for k,v in Counter(label_df_small['binaryLL_1'].to_list()).items()}
+        print("# Graphs", len(label_df_small), "Label Frequency", Counter(label_df_small[self.label_col].to_list()))
+        self.class_proportions = {k:v/len(label_df_small) for k,v in Counter(label_df_small[self.label_col].to_list()).items()}
         print(f"Class proportions: {self.class_proportions}")
         return label_df_small
     
@@ -185,7 +189,7 @@ class CustomDataset(torch_geometric.data.Dataset):
         # adding trachea info to top of list
         trachea_dict = dict.fromkeys(node_features, 0)
         for i in ['x_norm', 'y_norm', 'z_norm']:
-            trachea_dict[i] = df.loc[df.startbpid==-1][str('parent_loc_'+i)].item()
+            trachea_dict[i] = df.loc[df.endbpid==1][str('parent_loc_'+i)].item()
         
         # currently usnig as features 
         list_of_nodes = df[node_features].to_dict(orient='records')
@@ -209,10 +213,10 @@ class CustomDataset(torch_geometric.data.Dataset):
 
     def _get_label(self, idno, label_df):
         '''
-        for the selected idno, returns value in binaryLL_1 col as an integer
+        for the selected idno, returns value in self.label_col as an integer
         '''
         return torch.tensor(label_df.loc[label_df.idno==idno,
-                 'binaryLL_1'].values, dtype=torch.int64)
+                 self.label_col].values, dtype=torch.int64)
     
     def len(self):
         return int(self.data.idno.nunique())

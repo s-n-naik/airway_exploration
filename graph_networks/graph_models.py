@@ -44,6 +44,8 @@ from torch_scatter import scatter_add
 
 from torch_geometric.utils import softmax
 
+from torch_geometric.utils import degree
+
 class CustomGlobalAttention(torch_geometric.nn.GlobalAttention):
     def __init__(self,gate_nn, nn = None, return_attn=True):
         '''
@@ -78,7 +80,12 @@ class CustomGlobalAttention(torch_geometric.nn.GlobalAttention):
         gate = softmax(gate, batch, num_nodes=size)
         out = scatter_add(gate * x, batch, dim=0, dim_size=size)
         if self.return_attn:
-            return out, gate
+#             print('custom global ttn',out.shape, gate.shape)
+            sizes = list(degree(batch, dtype=torch.long))
+#             print(len(sizes), sizes)
+            gate_shape = gate.split(sizes,dim=0)
+            # list of tensors, one per graph (256 with dim = num nodes for each)
+            return out, gate_shape
         else:
             return out
 
@@ -119,13 +126,14 @@ class GAT(torch.nn.Module):
                              heads=self.head2, dropout=dropout)
         
         
-        self.lin1 = nn.Linear(self.hid2*self.head2, 1) # computes attention weights
+#         self.lin1 = nn.Linear(self.hid2*self.head2, 1) # computes attention weights
+        self.lin1 = nn.Linear(self.hid2, 1)
 #         self.lin2 =  nn.Linear(self.hid2*self.head2, 1) # transfomrs features F --> V before you multiply + add w attention weights
         self.att = CustomGlobalAttention(gate_nn=self.lin1, return_attn=True)
         
         # if global mean pool
         self.classifier = nn.Sequential(
-                                        nn.Linear(self.hid2*self.head2, self.num_classes),
+                                        nn.Linear(self.hid2, self.num_classes),
                                         nn.Sigmoid()
                                     )
 
@@ -139,13 +147,14 @@ class GAT(torch.nn.Module):
         x = F.elu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.conv2(x, edge_index, edge_attr=edge_attr)
-#         print("conv2", x.shape)
+#         print("conv2", x.shape, batch.shape)
         per_node = F.log_softmax(x, dim=1)
 #         print("per node", per_node.shape)
         
         # 2. Readout layer
         if self.agg == 'attn':
             x, weights = self.att(x, batch)  # [batch_size, hidden_channels]
+#             print('attn', x.shape, len(weights))
         elif self.agg == 'mean':
             x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
         elif self.agg == 'max':
@@ -161,13 +170,14 @@ class GAT(torch.nn.Module):
         x = self.classifier(x)
 #         print("post linear", x.shape)
         
+    
+    
+        
         if weights is None:
             # either returns attn weights if using attn aggregation or uses the softmax of the features of each node 
             weights = per_node
         
         return x, weights
     
-
-
 
 

@@ -39,8 +39,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
 # Get train test split masks
-def train_test_split(binary_label_df,n_splits_test, seed=0):
-    labels_list = binary_label_df["binaryLL_1"].tolist()
+def train_test_split(binary_label_df,n_splits_test,label_col_name='binaryLL_1', seed=0):
+    labels_list = binary_label_df[label_col_name].tolist()
     print("Overall Label frequency distribution", [(x, labels_list.count(x)) for x in set(labels_list)])
 
     # stratified kfold
@@ -86,18 +86,18 @@ def train_model(model,
 
             # conduct a forward pass
             out, weight = model(data)
-#             print("out", out.shape, "weight", weight.shape)
+            print("out", out.shape)
             y_per_graph = data.y.float()
             
               # Noisy vs per graph labelling depending on model type
             if (out.squeeze()).shape != data.y.shape:
                 noisy_label = True
                 y = torch.take(data.y.float(), batch_vector) # repeat label shape
-#                 print('Noisy labelling', y.shape)
+                print('Noisy labelling', y.shape)
                 # denominator for accuracy etc. is y.shape from here (to average out per node accuracy)
             else:
                 y = data.y.float()
-#                 print('Graph labelling', y.shape)
+                print('Graph labelling', y.shape)
                 # denominatro here is y.shape (per graph to avg out graph accuracy)
             
             denominator_acc +=y.shape[0]
@@ -149,7 +149,7 @@ def train_model(model,
 
 
 
-def _vis_graph_example(dataloader,model, index, pilot_df_w_labels, visualise_g = False, save_path = None):
+def _vis_graph_example(dataloader,model, index, pilot_df_w_labels, device,visualise_g = False, save_path = None):
     data = dataloader.dataset[index]
     print(data)
     label = data.y
