@@ -51,8 +51,8 @@ main()
 import time
 from openalea.lpy import *
 from openalea.plantgl.all import *
-
-lsystem = Lsystem("basic_tree_v3.lpy")
+variables = {'maxorder':5, 'switch_order':2}
+lsystem = Lsystem("basic_tree_v1.lpy", variables)
 # # lsystem.animate()
 lstring = lsystem.derive()
 print('string',lstring)
@@ -62,23 +62,24 @@ print('string',lstring)
 scene = lsystem.sceneInterpretation(lstring) #list(lsystem)[-1]
 print("SCENE", scene)
 # scene.save("test_scene.mtg")
-azimuth = list(range(0,360, 90))
-elevation = [0,-90]
+azimuth = list(range(0,360, 45))
+# elevation = [0]
+el = 0
 print(list(azimuth))
-f, axes = plt.subplots(len(elevation),len(list(azimuth)))
+f, axes = plt.subplots(2,len(list(azimuth))//2)
 for i in range(len(list(azimuth))):
-    for j in range(len(elevation)):
-        # if i < len(azimuth)//2:
-        #     x = 0
-        #     y = i
-        # else:
-        #     x=1
-        #     y=i - len(azimuth)//2
+    # for j in range(len(elevation)):
+        if i < len(azimuth)//2:
+            x = 0
+            y = i
+        else:
+            x=1
+            y=i - len(azimuth)//2
         az = azimuth[i]
-        el = elevation[j]
-        # ax = axes[x,y]
-        ax = axes[j,i]
-        ax.set_title(f'az: {az}, el:{elevation}')
+        # el = elevation[j]
+        ax = axes[x,y]
+        # ax = axes[,i]
+        ax.set_title(f'az: {az}, el:{el}')
         view_2(scene, perspective=False, azimuth=az,elevation=el, savepath=f'test_pic_az{az}_el{el}.png', ax=ax)
 
 plt.savefig('all_pics_test.png')
