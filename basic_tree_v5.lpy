@@ -1,0 +1,109 @@
+from openalea.lpy import *
+import random
+import numpy as np
+import turtle
+# STILL AN ISSUE WHERE THE DOMAIN BRANCHING MAINSTEM DOESNT WORK PROPERLY
+
+
+# param set
+
+global scaffold
+global switch_order
+extern(maxorder = 9)
+extern(switch_order=5)
+
+
+
+p='C'
+
+_growth_rate  = 1 # growth rate or branches per timestep, t
+
+beta = 3/2
+radius = lambda order: r_0 * np.power(2, -order/beta) # weibel decay
+nbiter = 5# one timestep = one iteration
+# scaffold params
+trachea_vector = np.array([-0.01299,	0.19485,	0.980747])
+l_0 = 4.125184
+r_0 = 0.72
+tilt_angle = 15
+branch_angle = 30
+omega = 5
+#alpha: branching angle rel to parent dirn (about U ^/&)
+#theta_1: domain initial angle (about H, /\)  
+#o: current generation (to increment on bifurcation)
+#c: colour of current system 
+#Produces a symmettric bifurcation starting at an angle theta_1 relative to parent heading direction
+# colours for diff modes
+c_orig = (197,126,20)
+c_domain = (100,120,186)
+c_planar = (148,206,135)
+c_orthog = (249,105,116)
+cmap = {'L':(0,0,0), "C":(255,0,0), "R":(0,255,0)}
+
+
+
+start_v = np.array([-0.941555,2.77128	, -2.906997])
+trachea_v = np.array([ 0.22824563,-0.67179535 , 0.70469493 ])
+rmb_v  = np.array([0.792214,0.608512, 0.0459255 ])
+l_1 = 2.004
+r_1 = 0.46/10
+
+lmb_v =  np.array([-5.20417005e-18,5.55111472e-17,  1.00000000e+00 ])
+
+
+
+
+
+
+# FUNCTIONS
+def domain_branching(A, alpha, theta_1, omega, delta_theta):
+  
+		
+
+
+
+
+def EndEach(lstring):
+  # prints out the lstring to the terminal at each derivation step + the length of the lstring
+  #print('length lstring:',len(lstring))
+  #print('lstring', lstring)
+  #print(getIterationNb())
+  pass
+
+def StartEach():
+  pass
+  
+
+module I
+module A 
+module B
+
+#Frame @MoveRel(start_v)@Frame(0.1)
+Axiom: EulerAngles(0,0,0)@M(0,0,0) Frame(1)I(0.001, 0.1,c_orig,0) [@Pinpoint(rmb_v)@M(0,0,0)Frame(1)I(l_1, 0.1,c_orig,0)A(0,1, c_orig,"L")][@Pinpoint(lmb_v)@M(0,0,0)Frame(1)I(l_1, 0.1,c_orig,0)A(0,1, c_orig,"R")]@M(0,0,0) @Pinpoint(-1*trachea_v) I(l_0, 0.1,c_orig,0)
+
+#[/(0) &(branch_angle) +(tilt_angle)A(0,1, c_orig,"L")][/(180) &(branch_angle) +(tilt_angle)A(0,1, c_orig,"R")]
+derivation length: nbiter
+
+production:
+
+# SCAFFOLD GENEERATION
+A(t,o, c, p) :#
+  
+  alpha, theta_1, omega = 1,1,1 # nnote need to change this to lobe dependent params
+  if t < omega:
+     # simply produces a metamer and ages the apex
+     
+     produce I(_growth_rate, radius(o),c,o) A(t+1,o, c,p) 
+
+
+interpretation:
+I(l,r, c,o) --> @SetColor(c[0], c[1], c[2])F(l,r)#@SetColor(0,0,0)@L(str(o))
+A(t,o, c,p) --> @SetColor(cmap[p][0],cmap[p][1],cmap[p][2]) @O(0.2) 
+B(t,o, c,p) --> @SetColor(cmap[p][0],cmap[p][1],cmap[p][2]) @O(0.2) 
+
+#I(l,r, c,o) --> turtle.F(l,r)#conda @L(str(turtle.GetHead))
+#A(t,o, c,p) --> turtle.O(0.2) #@SetColor(cmap[p][0],cmap[p][1],cmap[p][2]) 
+
+homomorphism:
+
+endlsystem
